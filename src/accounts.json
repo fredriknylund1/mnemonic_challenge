@@ -1,0 +1,14 @@
+{
+    "accounts": [
+        {
+            "id": 0,
+            "name": "Petter Potet",
+            "available_funds": 500
+        },
+        {
+            "id": 1,
+            "name": "Fredrik Fisk",
+            "available_funds": 500
+        }
+    ]
+}

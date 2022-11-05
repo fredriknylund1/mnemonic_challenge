@@ -1,0 +1,13 @@
+{
+    "transactions": [
+        {
+            "id": 0,
+            "registered_time": 0,
+            "executed_time": 200,
+            "success": true,
+            "cashAmount": 150,
+            "source_account": 0,
+            "destination_account": 1
+        }
+    ]
+}
