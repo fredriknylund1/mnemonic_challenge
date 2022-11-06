@@ -14,10 +14,11 @@ status_OK = 'HTTP/1.1 200 OK\r\n'
 status_BAD_REQUEST = 'HTTP/1.1 400 Bad Request\r\n'
 status_NOT_FOUND = 'HTTP/1.1 404 Not Found \r\n'
 
+# CLASS FOR HANDLING TCP CONNECTIONS.
 class TcpHandler(socketserver.StreamRequestHandler):
+
     # HANDLES CONNECTIONS
     def handle(self):
-        print("handle")
         self.content_length = 0
 
         # READS THE FIRST LINE OF THE REQUEST HEADER.
@@ -36,14 +37,23 @@ class TcpHandler(socketserver.StreamRequestHandler):
         if resource == '/transaction':
             self.transaction()
 
+    # HANDLES A TRANSACTION
+    # TRANSACTION REQUEST BODY SHOULD BE ON FORMAT = "source= {source_account.id} dest= {destination_Account.id} amount= {amount}"
     def transaction(self):
 
          # READS HEADER LINES TO GET CONTENT LENGTH OF REQUEST.
         self.read_until_body()
-        print(self.content_length)
 
         # GET TRANSACTION ELEMENTS FROM BODY
         body_elements = self.rfile.read(self.content_length).decode('ascii').split()
+
+        # CHECKS THAT THE REQUEST IS SENT IN THE CORRECT FORMAT
+        if len(body_elements) != 6:
+            transaction_result = self.create_transaction_result(0, 0, 0, False, 'Invalid request format')
+            self.response(status_BAD_REQUEST, transaction_result)
+            return
+
+        # RETRIEVES THE NEEDED ACCOUNT AND AMOUNT INFORMATION FROM THE REQUEST
         src = int(body_elements[1])
         dest = int(body_elements[3])
         amount = int(body_elements[5])
@@ -93,18 +103,16 @@ class TcpHandler(socketserver.StreamRequestHandler):
         # WRITE BACK TO ACCOUNT FILE
         write_to_json(ACCOUNTS_FILE, content)
 
-        # GET TIMESTAMP
-        timestamp = int(time.time())
 
-        print(timestamp)
         # CREATE TRANSACTION 
         transaction_result = self.create_transaction_result(src, dest, amount, True, 'Successful transaction')
 
         # SEND RESPONSE FOR SUCCESSFUL TRANSACTION
         self.response(status_OK, transaction_result)
 
+    # READS THE HEADERLINES OF A REQUEST, RETURNS WITH THE BODY AS THE NEXT LINE TO READ OF RFILE.
+    # RETRIEVES AND SAVES CONTENT LENGTH OF REQUEST.
     def read_until_body(self):
-        print("get body")
 
         line = self.rfile.readline().decode('ascii')
 
@@ -126,21 +134,23 @@ class TcpHandler(socketserver.StreamRequestHandler):
     # CREATES RESPONSE MESSAGE AND SENDS IT TO CLIENT
     def response(self, status, content):
 
-        # GET SIZE OF BODY
+        # CONVERTS CONTENT INTO JSON FORMAT.
         body = json.dumps(content, indent=4).encode('utf-8')
+        # GET SIZE OF BODY
         content_length = sys.getsizeof(body)
 
+        # CREATE HEADER AND RESPONS.
         header_lines = ('Content-Length: ' + str(content_length) + '\r\n'
             + 'Content-Type: application/json' + '\r\n')
 
         response = bytes(status + header_lines + '\r\n', 'ascii') + body
-        print(response)
 
         self.wfile.write(response)
 
     # CREATES TRANSACTION RESULT
     def create_transaction_result(self, src, dest, amount, success, message):
 
+        # GET TIMESTAMP
         timestamp = int(time.time())
 
         transaction = {
